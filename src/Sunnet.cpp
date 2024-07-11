@@ -1,4 +1,5 @@
 #include <iostream>
+#include <assert.h>
 #include "Sunnet.h"
 using namespace std;
 
@@ -16,6 +17,8 @@ void Sunnet::Start()
 	pthread_cond_init(&sleepCond, NULL);
     pthread_mutex_init(&sleepMtx, NULL);
 	StartWorker();
+	StartSocket();
+	assert(pthread_rwlock_init(&connsLock, NULL) == 0);
 }
 
 void Sunnet::Wait()
@@ -55,6 +58,13 @@ void Sunnet::StartWorker()
 		workers.push_back(worker);
 		workerThreads.push_back(wt);
 	}
+}
+
+void Sunnet::StartSocket()
+{
+	socketWorker = new SocketWorker();
+	socketWorker->Init();
+	socketThread = new thread(*socketWorker);
 }
 
 shared_ptr<Service> Sunnet::GetService(uint32_t id)
@@ -169,6 +179,46 @@ void Sunnet::WorkerWait()
     pthread_cond_wait(&sleepCond, &sleepMtx);
     sleepCount--;
     pthread_mutex_unlock(&sleepMtx);
+}
+
+int Sunnet::AddConn(int fd, uint32_t id, Conn::TYPE type)
+{
+	auto conn = make_shared<Conn>();
+	conn->fd = fd;
+	conn->serviceId = id;
+	conn->type = type;
+	pthread_rwlock_wrlock(&connsLock);
+	{
+		conns.emplace(fd, conn);
+	}
+	pthread_rwlock_unlock(&connsLock);
+	return fd;
+}
+
+shared_ptr<Conn> Sunnet::GetConn(int fd)
+{
+	shared_ptr<Conn> conn = NULL;
+	pthread_rwlock_rdlock(&connsLock);
+	{
+		auto iter = conns.find(fd);
+		if(iter != conns.end())
+		{
+			conn = iter->second;
+		}
+	}
+	pthread_rwlock_unlock(&connsLock);
+	return conn;
+}
+
+bool Sunnet::RemoveConn(int fd)
+{
+	int result;
+	pthread_rwlock_wrlock(&connsLock);
+	{
+		result = conns.erase(fd);
+	}
+	pthread_rwlock_unlock(&connsLock);
+	return result == 1;
 }
 
 ////////////////////////////////////////////
