@@ -8,6 +8,8 @@ public:
     enum TYPE
     {
         SERVICE = 1,
+        SOCKET_ACCEPT = 2,
+        SOCKET_RW = 3,
     };
     uint8_t type;
     virtual ~BaseMsg(){};
