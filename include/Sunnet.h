@@ -40,6 +40,10 @@ public:
 	shared_ptr<Conn> GetConn(int fd);
 	bool RemoveConn(int fd);
 
+	//网络连接操作接口
+	int Listen(uint32_t port, uint32_t serviceId);
+	void CloseConn(uint32_t fd);
+
 	//test
 	shared_ptr<BaseMsg> MakeMsg(uint32_t source, char* buff, int len);
 

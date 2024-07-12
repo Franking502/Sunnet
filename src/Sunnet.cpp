@@ -1,5 +1,10 @@
 #include <iostream>
 #include <assert.h>
+#include <unistd.h>
+#include <fcntl.h>
+#include <sys/socket.h>
+#include <netinet/in.h>
+#include <arpa/inet.h>
 #include "Sunnet.h"
 using namespace std;
 
@@ -219,6 +224,59 @@ bool Sunnet::RemoveConn(int fd)
 	}
 	pthread_rwlock_unlock(&connsLock);
 	return result == 1;
+}
+
+int Sunnet::Listen(uint32_t port, uint32_t serviceId)
+{
+	//1.创建socket
+	int listenFd = socket(AF_INET, SOCK_STREAM, 0);
+	if(listenFd <= 0)
+	{
+		cout << "listen error, listenFd <= 0" << endl;
+		return -1;
+	}
+
+	//2.设置为非阻塞
+	fcntl(listenFd, F_SETFL, O_NONBLOCK);
+
+	//3.bind
+	struct sockaddr_in addr;
+	addr.sin_family = AF_INET;
+	addr.sin_port = htons(port);
+	addr.sin_addr.s_addr = htonl(INADDR_ANY);
+	int r = bind(listenFd, (struct sockaddr*)&addr, sizeof(addr));
+	if(r == -1)
+	{
+		cout << "listen error, bind fail" <<endl;
+		return -1;
+	}
+
+	//4.listen
+	r = listen(listenFd, 64);
+	if(r < 0)
+	{
+		return -1;
+	}
+
+	//5.添加到管理结构
+	AddConn(listenFd, serviceId, Conn::TYPE::LISTEN);
+
+	//6.epoll事件，跨线程
+	socketWorker->AddEvent(listenFd);
+	return listenFd;
+}
+
+void Sunnet::CloseConn(uint32_t fd)
+{
+	//删除conn对象
+	bool succ = RemoveConn(fd);
+	//关闭套接字
+	close(fd);
+	//删除epoll对象对套接字的监听（跨线程操作）
+	if(succ)
+	{
+		socketWorker->RemoveEvent(fd);
+	}
 }
 
 ////////////////////////////////////////////

@@ -1,3 +1,4 @@
+#include <unistd.h>
 #include "Sunnet.h"
 
 void test()
@@ -14,11 +15,18 @@ void test()
 	Sunnet::inst->Send(pong, msg2);
 }
 
+int TestSocketCtrl()
+{
+	int fd = Sunnet::inst->Listen(8001, 1);
+	usleep(15 * 1000000);
+	Sunnet::inst->CloseConn(fd);
+}
+
 int main()
 {
 	new Sunnet();
 	Sunnet::inst->Start();
-	test();
+	TestSocketCtrl();
 	Sunnet::inst->Wait();
 	return 0;
 }
