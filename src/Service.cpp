@@ -53,47 +53,26 @@ void Service::OnInit()
 //收到消息时触发
 void Service::OnMsg(shared_ptr<BaseMsg> msg)
 {
+    //SERVICE
+    if(msg->type == BaseMsg::TYPE::SERVICE)
+    {
+        auto m = dynamic_pointer_cast<ServiceMsg>(msg);
+        OnServiceMsg(m);
+    }
+
     //SOCKET_ACCEPT
-    if(msg->type == BaseMsg::TYPE::SOCKET_ACCEPT)
+    else if(msg->type == BaseMsg::TYPE::SOCKET_ACCEPT)
     {
         auto m = dynamic_pointer_cast<SocketAcceptMsg>(msg);
-        cout << "new conn " << m->clientFd << endl;
+        OnAcceptMsg(m);
     }
 
     //SOCKET_RW
-    if(msg->type == BaseMsg::TYPE::SOCKET_RW)
+    else if(msg->type == BaseMsg::TYPE::SOCKET_RW)
     {
         auto m = dynamic_pointer_cast<SocketRWMsg>(msg);
-        if(m->isRead)
-        {
-            char buff[512];
-            int len = read(m->fd, &buff, 512);
-            if(len > 0)
-            {
-                char writeBuff[4] = {'l', 'p', 'y', '\n'};
-                write(m->fd, &writeBuff, 4);
-            }
-            else
-            {
-                cout << "close " << m->fd << strerror(errno) << endl;
-                Sunnet::inst->CloseConn(m->fd);
-            }
-        }
+        OnRWMsg(m);
     }
-
-    /*if(msg->type == BaseMsg::TYPE::SERVICE)
-    {
-        auto m = dynamic_pointer_cast<ServiceMsg>(msg);
-        cout << "[" << id << "] OnMsg " << m->buff << endl;
-
-        auto msgRet = Sunnet::inst->MakeMsg(id, new char[9999999] {'p', 'i', 'n', 'g', '\0'}, 9999999);
-
-        Sunnet::inst->Send(m->source, msgRet);
-    }
-    else
-    {
-        cout << "[" << id << "] OnMsg" << endl;
-    }*/
 }
 
 //退出服务时触发
@@ -136,4 +115,73 @@ void Service::SetInGlobal(bool isIn)
         inGlobal = isIn;
     }
     pthread_spin_unlock(&inGlobalLock);
+}
+
+//收到其他服务的消息
+void Service::OnServiceMsg(shared_ptr<ServiceMsg> msg)
+{
+    cout << "OnServiceMsg" << endl;
+}
+
+//新连接
+void Service::OnAcceptMsg(shared_ptr<SocketAcceptMsg> msg)
+{
+    cout << "OnAcceptMsg " << msg->clientFd << endl;
+}
+
+//套接字可读可写
+void Service::OnRWMsg(shared_ptr<SocketRWMsg> msg)
+{
+    int fd = msg->fd;
+
+    if(msg->isRead)
+    {
+        const int BUFFSIZE = 512;
+        char buff[BUFFSIZE];
+        int len = 0;
+        do
+        {
+            len = read(fd, &buff, BUFFSIZE);
+            if(len > 0)
+            {
+                OnSocketData(fd, buff, len);
+            }
+        }while(len == BUFFSIZE);
+
+        //如果上一次读取的长度恰好为512且全部读完，则errno的值为EAGAIN
+        if(len <= 0 && errno != EAGAIN)
+        {
+            if(Sunnet::inst->GetConn(fd))
+            {
+                //保证OnSocketClose只调用一次
+                OnSocketClose(fd);
+                Sunnet::inst->CloseConn(fd);
+            }
+        }
+    }
+    
+    if(msg->isWrite)
+    {
+        if(Sunnet::inst->GetConn(fd))
+        {
+            OnSocketWritable(fd);
+        }
+    }
+}
+
+void Service::OnSocketData(int fd, const char* buff, int len)
+{
+    cout << "OnSocketData: " << fd << "buff: " << buff << endl;
+    char writeBuff[4] = {'l', 'p', 'y', '\n'};
+    write(fd, &writeBuff, 4);
+}
+
+void Service::OnSocketWritable(int fd)
+{
+    cout << "OnSocketWritable: " << fd << endl;
+}
+
+void Service::OnSocketClose(int fd)
+{
+    cout << "OnSocketClose: " << fd << endl;
 }

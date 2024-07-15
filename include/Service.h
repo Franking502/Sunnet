@@ -38,4 +38,10 @@ public:
 
 private:
     shared_ptr<BaseMsg> PopMsg();
+    void OnServiceMsg(shared_ptr<ServiceMsg> msg);
+    void OnAcceptMsg(shared_ptr<SocketAcceptMsg> msg);
+    void OnRWMsg(shared_ptr<SocketRWMsg> msg);
+    void OnSocketData(int fd, const char* buff, int len);
+    void OnSocketWritable(int fd);
+    void OnSocketClose(int fd);
 };

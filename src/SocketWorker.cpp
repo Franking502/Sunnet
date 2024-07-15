@@ -118,6 +118,12 @@ void SocketWorker::OnAccept(shared_ptr<Conn> conn)
 
     //2.设置非阻塞
     fcntl(clientFd, F_SETFL, O_NONBLOCK);
+    //设置写缓冲区大小为4GB
+    unsigned long buffSize = 4294967295;
+    if(setsockopt(clientFd, SOL_SOCKET, SO_SNDBUFFORCE, &buffSize, sizeof(buffSize)) < 0)
+    {
+        cout << "OnAccept setsockopt fail " << strerror(errno) << endl;
+    }
 
     //3.设置连接对象
     Sunnet::inst->AddConn(clientFd, conn->serviceId, Conn::TYPE::CLIENT);

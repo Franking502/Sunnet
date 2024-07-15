@@ -5,6 +5,7 @@
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
+#include <signal.h>
 #include "Sunnet.h"
 using namespace std;
 
@@ -17,10 +18,14 @@ Sunnet::Sunnet()
 void Sunnet::Start()
 {
 	cout << "Hello Sunnet" << endl;
+	//忽略SIGPIPE信号，防止服务端在阻塞期间收到客户端的退出信号后向失效的套接字write导致进程被操作系统终止
+	signal(SIGPIPE, SIG_IGN);
+
 	pthread_rwlock_init(&servicesLock, NULL);
 	pthread_spin_init(&globalLock, PTHREAD_PROCESS_PRIVATE);
 	pthread_cond_init(&sleepCond, NULL);
     pthread_mutex_init(&sleepMtx, NULL);
+
 	StartWorker();
 	StartSocket();
 	assert(pthread_rwlock_init(&connsLock, NULL) == 0);
