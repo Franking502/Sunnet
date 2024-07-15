@@ -1,6 +1,8 @@
 #include "Service.h"
 #include "Sunnet.h"
 #include <iostream>
+#include <unistd.h>
+#include <string.h>
 
 Service::Service()
 {
@@ -44,14 +46,42 @@ shared_ptr<BaseMsg> Service::PopMsg()
 void Service::OnInit()
 {
     cout << "[" << id << "] OnInit" << endl;
+    //开启监听
+    Sunnet::inst->Sunnet::Listen(8002, id);
 }
 
 //收到消息时触发
 void Service::OnMsg(shared_ptr<BaseMsg> msg)
 {
-    //cout << "[" << id << "] OnMsg" << endl;
-    //test
-    if(msg->type == BaseMsg::TYPE::SERVICE)
+    //SOCKET_ACCEPT
+    if(msg->type == BaseMsg::TYPE::SOCKET_ACCEPT)
+    {
+        auto m = dynamic_pointer_cast<SocketAcceptMsg>(msg);
+        cout << "new conn " << m->clientFd << endl;
+    }
+
+    //SOCKET_RW
+    if(msg->type == BaseMsg::TYPE::SOCKET_RW)
+    {
+        auto m = dynamic_pointer_cast<SocketRWMsg>(msg);
+        if(m->isRead)
+        {
+            char buff[512];
+            int len = read(m->fd, &buff, 512);
+            if(len > 0)
+            {
+                char writeBuff[4] = {'l', 'p', 'y', '\n'};
+                write(m->fd, &writeBuff, 4);
+            }
+            else
+            {
+                cout << "close " << m->fd << strerror(errno) << endl;
+                Sunnet::inst->CloseConn(m->fd);
+            }
+        }
+    }
+
+    /*if(msg->type == BaseMsg::TYPE::SERVICE)
     {
         auto m = dynamic_pointer_cast<ServiceMsg>(msg);
         cout << "[" << id << "] OnMsg " << m->buff << endl;
@@ -63,7 +93,7 @@ void Service::OnMsg(shared_ptr<BaseMsg> msg)
     else
     {
         cout << "[" << id << "] OnMsg" << endl;
-    }
+    }*/
 }
 
 //退出服务时触发

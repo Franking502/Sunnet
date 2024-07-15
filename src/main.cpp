@@ -22,11 +22,17 @@ int TestSocketCtrl()
 	Sunnet::inst->CloseConn(fd);
 }
 
+int TestEcho()
+{
+	auto t = make_shared<string>("gateway");
+	uint32_t gateway = Sunnet::inst->NewService(t);
+}
+
 int main()
 {
 	new Sunnet();
 	Sunnet::inst->Start();
-	TestSocketCtrl();
+	TestEcho();
 	Sunnet::inst->Wait();
 	return 0;
 }

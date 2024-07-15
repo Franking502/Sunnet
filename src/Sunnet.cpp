@@ -237,6 +237,7 @@ int Sunnet::Listen(uint32_t port, uint32_t serviceId)
 	}
 
 	//2.设置为非阻塞
+	//如果缓冲区没有数据，则read方法会返回-1；如果缓冲区容量不够，write方法会返回已写入字节数，不会阻塞等待写完
 	fcntl(listenFd, F_SETFL, O_NONBLOCK);
 
 	//3.bind
