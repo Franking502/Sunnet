@@ -32,7 +32,8 @@ int main()
 {
 	new Sunnet();
 	Sunnet::inst->Start();
-	TestEcho();
+	auto t = make_shared<string>("main");
+	Sunnet::inst->NewService(t);
 	Sunnet::inst->Wait();
 	return 0;
 }
