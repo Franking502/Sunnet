@@ -3,6 +3,13 @@
 #include <thread>
 #include "Msg.h"
 
+extern "C"
+{
+    #include "lua.h"
+    #include "lauxlib.h"
+    #include "lualib.h"
+}
+
 using namespace std;
 
 class Service
@@ -35,6 +42,9 @@ public:
 
     //线程安全地设置inGlobal
     void SetInGlobal(bool isIn);
+
+private:
+    lua_State *luaState;
 
 private:
     shared_ptr<BaseMsg> PopMsg();

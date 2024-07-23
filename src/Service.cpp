@@ -46,8 +46,20 @@ shared_ptr<BaseMsg> Service::PopMsg()
 void Service::OnInit()
 {
     cout << "[" << id << "] OnInit" << endl;
+
+    //新建Lua虚拟机
+    luaState = luaL_newstate();
+    luaL_openlibs(luaState);//初始化
+    //执行lua文件
+    string filename = "../service/" + *type + "/init.lua";
+    int isok = luaL_dofile(luaState, filename.data());
+    if(isok == 1)//0-成功 1-失败
+    {
+        cout << "run lua fail: " << lua_tostring(luaState, -1) << endl;
+    }
+
     //开启监听
-    Sunnet::inst->Sunnet::Listen(8002, id);
+    //Sunnet::inst->Sunnet::Listen(8002, id);
 }
 
 //收到消息时触发
@@ -79,6 +91,8 @@ void Service::OnMsg(shared_ptr<BaseMsg> msg)
 void Service::OnExit()
 {
     cout << "[" << id << "] OnExit" << endl;
+    //关闭虚拟机
+    lua_close(luaState);
 }
 
 //消息处理，返回消息是否被处理

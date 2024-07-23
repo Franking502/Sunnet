@@ -15,14 +15,14 @@ void test()
 	Sunnet::inst->Send(pong, msg2);
 }
 
-int TestSocketCtrl()
+void TestSocketCtrl()
 {
 	int fd = Sunnet::inst->Listen(8001, 1);
 	usleep(15 * 1000000);
 	Sunnet::inst->CloseConn(fd);
 }
 
-int TestEcho()
+void TestEcho()
 {
 	auto t = make_shared<string>("gateway");
 	uint32_t gateway = Sunnet::inst->NewService(t);
