@@ -1,5 +1,6 @@
 #include "Service.h"
 #include "Sunnet.h"
+#include "LuaAPI.h"
 #include <iostream>
 #include <unistd.h>
 #include <string.h>
@@ -50,6 +51,8 @@ void Service::OnInit()
     //新建Lua虚拟机
     luaState = luaL_newstate();
     luaL_openlibs(luaState);//初始化
+    //注册Sunnet系统API
+    LuaAPI::Register(luaState);
     //执行lua文件
     string filename = "../service/" + *type + "/init.lua";
     int isok = luaL_dofile(luaState, filename.data());
@@ -59,7 +62,7 @@ void Service::OnInit()
     }
     //调用lua函数
     lua_getglobal(luaState, "OnInit");
-    lua_pushinteger(luaState, id);
+    lua_pushinteger(luaState, id);//参数压栈
     isok = lua_pcall(luaState, 1, 0, 0);
     if(isok != 0)
     {
