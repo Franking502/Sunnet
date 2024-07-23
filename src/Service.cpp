@@ -57,6 +57,14 @@ void Service::OnInit()
     {
         cout << "run lua fail: " << lua_tostring(luaState, -1) << endl;
     }
+    //调用lua函数
+    lua_getglobal(luaState, "OnInit");
+    lua_pushinteger(luaState, id);
+    isok = lua_pcall(luaState, 1, 0, 0);
+    if(isok != 0)
+    {
+        cout << "call lua OnInit fail " << lua_tostring(luaState, -1) << endl;
+    }
 
     //开启监听
     //Sunnet::inst->Sunnet::Listen(8002, id);
@@ -91,6 +99,12 @@ void Service::OnMsg(shared_ptr<BaseMsg> msg)
 void Service::OnExit()
 {
     cout << "[" << id << "] OnExit" << endl;
+    lua_getglobal(luaState, "OnExit");
+    int isok = lua_pcall(luaState, 0, 0, 0);
+    if(isok != 0)
+    {
+        cout << "call lua OnExit fail" << lua_tostring(luaState, -1) << endl;
+    }
     //关闭虚拟机
     lua_close(luaState);
 }
